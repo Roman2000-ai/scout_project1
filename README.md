@@ -36,12 +36,12 @@
   # Telegram (получить на https://my.telegram.org → API Development Tools)
   TELEGRAM_API_ID=123456
   TELEGRAM_API_HASH=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  OPENAI_API_KEY=sk-...
+  MODEL = model of openai
 
  
 
- OpenAI
-  # OPENAI_API_KEY=sk-...
-  # MODEL = model of openai
+
   ```
 
 
