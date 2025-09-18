@@ -11,10 +11,12 @@ from message_queue import worker
 
 
 
+
 load_dotenv()
 
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
+NAME_CHAT = os.getenv("")
 
 PATTERNS = [
     r"\bищ\w+\b",                            
@@ -42,7 +44,7 @@ async def create_client_telegram(q: asyncio.Queue):
     async with TelegramClient("my_session",API_ID,API_HASH) as client:
         
         me = await client.get_me()
-        name_chat = "test_group1"
+        name_chat = NAME_CHAT
 
         print(f"username: {me.username}")
 
