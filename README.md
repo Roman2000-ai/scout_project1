@@ -79,6 +79,6 @@ uvicorn main:app --reload -port 8000
 
 ```bash
 cd front
-python -m http.server 8000   # Стартуем локальный сервер на 5050
+python -m http.server 5050   
 # затем в браузере:
-# http://localhost:8000/index.html
+# http://localhost:5050/index.html
