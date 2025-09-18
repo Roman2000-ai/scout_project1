@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Категории → сообщения</title>
+    <style>
+      :root { --gap: 10px; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Tahoma, sans-serif; margin: 0; padding: 24px; background: #f8f9fb; color: #111; }
+      h1 { margin: 0 0 12px; font-size: 22px; }
+      .wrap { max-width: 900px; margin: 0 auto; }
+      .toolbar { display: flex; gap: var(--gap); align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+      .cats { display: flex; gap: var(--gap); flex-wrap: wrap; margin-bottom: 10px; }
+      .cat-btn { border: 1px solid #d0d5dd; background: #fff; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+      .cat-btn.active { background: #111; color: #fff; border-color: #111; }
+      .muted { color: #666; }
+      .error { color: #b42318; }
+      .controls { display: flex; gap: var(--gap); align-items: center; flex-wrap: wrap; margin: 10px 0 18px; }
+      input[type="number"] { padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; }
+      button { padding: 8px 12px; border: 1px solid #d0d5dd; background: #fff; border-radius: 10px; cursor: pointer; }
+      button.primary { background: #111; color: #fff; border-color: #111; }
+      button:disabled { opacity: .5; cursor: default; }
+      .list { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+      .item { padding: 12px 14px; border-top: 1px solid #f1f3f5; }
+      .item:first-child { border-top: none; }
+      .item b { font-weight: 600; }
+      .row { display: grid; grid-template-columns: 140px 1fr; gap: 10px; margin: 4px 0; }
+      .topbar { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 6px; }
+      .pager { display: flex; gap: var(--gap); align-items: center; }
+      code.badge { background: #f1f3f5; border: 1px solid #e5e7eb; padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+      .link-btn { display:inline-block; padding:6px 10px; border:1px solid #d0d5dd; border-radius:8px; text-decoration:none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Категории → сообщения</h1>
+
+      <div class="toolbar">
+        <div class="cats" id="cats"></div>
+      </div>
+
+      <div class="controls">
+        <label>Limit:
+          <input id="limit" type="number" min="1" value="20">
+        </label>
+        <label>Offset:
+          <input id="offset" type="number" min="0" value="0">
+        </label>
+        <button id="reloadBtn" class="primary">Обновить</button>
+        <span id="status" class="muted"></span>
+      </div>
+
+      <div class="topbar">
+        <div><span class="muted">Активная категория:</span> <code class="badge" id="activeCat">—</code></div>
+        <div class="pager">
+          <button id="prevBtn">Prev</button>
+          <button id="nextBtn">Next</button>
+        </div>
+      </div>
+
+      <div id="list" class="list"></div>
+    </div>
+
+    <script>
+      // === НАСТРОЙКИ ===
+      const API_BASE = "http://127.0.0.1:8000";
+      const DEFAULT_CATEGORIES = [
+        "repair","delivery","cleaning","design","advertising",
+        "development","consultation","transportation","installation","configuration"
+      ];
+
+      // === ЭЛЕМЕНТЫ DOM ===
+      const catsEl = document.getElementById("cats");
+      const activeCatEl = document.getElementById("activeCat");
+      const listEl = document.getElementById("list");
+      const statusEl = document.getElementById("status");
+      const limitInput = document.getElementById("limit");
+      const offsetInput = document.getElementById("offset");
+      const reloadBtn = document.getElementById("reloadBtn");
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+
+      // === СОСТОЯНИЕ ===
+      let categories = [...DEFAULT_CATEGORIES];
+      let activeCategory = null;
+
+      // init
+      renderCategories();
+      if (categories.length) selectCategory(categories[0]);
+
+      reloadBtn.addEventListener("click", () => loadMessages());
+      prevBtn.addEventListener("click", () => stepOffset(-1));
+      nextBtn.addEventListener("click", () => stepOffset(1));
+
+      function stepOffset(dir) {
+        const limit = readLimit();
+        let offset = readOffset();
+        const step = Math.max(1, limit);
+        const next = Math.max(0, offset + dir * step);
+        offsetInput.value = String(next);
+        loadMessages();
+      }
+
+      function renderCategories() {
+        catsEl.innerHTML = "";
+        categories.forEach(cat => {
+          const btn = document.createElement("button");
+          btn.className = "cat-btn";
+          btn.textContent = cat;
+          btn.addEventListener("click", () => selectCategory(cat));
+          catsEl.appendChild(btn);
+        });
+        highlightActive();
+      }
+
+      function highlightActive() {
+        const btns = catsEl.querySelectorAll(".cat-btn");
+        btns.forEach(b => {
+          if (b.textContent === activeCategory) b.classList.add("active");
+          else b.classList.remove("active");
+        });
+      }
+
+      function selectCategory(cat) {
+        activeCategory = cat;
+        activeCatEl.textContent = cat || "—";
+        offsetInput.value = "0";
+        highlightActive();
+        loadMessages();
+      }
+
+      function readLimit()  { const v = Number(limitInput.value);  return Number.isFinite(v) && v > 0 ? v : 20; }
+      function readOffset() { const v = Number(offsetInput.value); return Number.isFinite(v) && v >= 0 ? v : 0; }
+
+      async function loadMessages() {
+        if (!activeCategory) return;
+
+        const limit = readLimit();
+        const offset = readOffset();
+        statusEl.textContent = "Загрузка…";
+        statusEl.className = "muted";
+        listEl.innerHTML = "";
+
+        try {
+          const url = new URL(`${API_BASE}/categories/${encodeURIComponent(activeCategory)}`);
+          if (limit) url.searchParams.set("limit", String(limit));
+          if (offset) url.searchParams.set("offset", String(offset));
+
+          const res = await fetch(url.toString(), { method: "GET" });
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`API error ${res.status}: ${text}`);
+          }
+
+          const data = await res.json();
+          renderList(data);
+          statusEl.textContent = `Получено: ${Array.isArray(data) ? data.length : 0}`;
+          statusEl.className = "muted";
+        } catch (err) {
+          statusEl.textContent = err?.message || String(err);
+          statusEl.className = "error";
+        }
+      }
+
+      function renderList(arr) {
+        if (!Array.isArray(arr) || arr.length === 0) {
+          listEl.innerHTML = `<div class="item muted">Ничего не найдено</div>`;
+          return;
+        }
+        listEl.innerHTML = arr.map(renderItem).join("");
+      }
+
+      // === ССЫЛКА "НАПИСАТЬ" ===
+      function tgUserLink({ username, user_id }) {
+        if (username && typeof username === "string" && username.trim()) {
+          return `https://t.me/${encodeURIComponent(username.trim())}`;
+        }
+        if (user_id != null) {
+          return `tg://user?id=${encodeURIComponent(String(user_id))}`;
+        }
+        return null;
+      }
+
+      function renderItem(m) {
+        const dt = m?.date ? new Date(m.date).toLocaleString() : "—";
+        const text = escapeHtml(m?.text ?? "");
+        const messageId = m?.message_id ?? "—";
+        const chatId = m?.chat_id ?? "—";
+        const userId = m?.user_id ?? "—";
+        const category = m?.category ?? "—";
+
+        // пользовательские поля
+        const username = m?.username ?? "—";
+        const fullName = [m?.first_name, m?.last_name].filter(Boolean).join(" ") || "—";
+        const phone = m?.phone ?? "—";
+
+        // только кнопка "Написать"
+        const userLink = tgUserLink({ username: m?.username, user_id: m?.user_id });
+        const actions = [];
+        if (userLink) actions.push(`<a class="link-btn" href="${userLink}" target="_blank" rel="noopener noreferrer">Написать</a>`);
+
+        return `
+          <div class="item">
+            <div class="row"><div><b>message_id</b></div><div>${messageId}</div></div>
+            <div class="row"><div><b>category</b></div><div>${category}</div></div>
+            <div class="row"><div><b>text</b></div><div>${text}</div></div>
+            <div class="row"><div><b>date</b></div><div>${dt}</div></div>
+
+            <div class="row"><div><b>user_id</b></div><div>${userId}</div></div>
+            <div class="row"><div><b>username</b></div><div>${username}</div></div>
+            <div class="row"><div><b>name</b></div><div>${fullName}</div></div>
+            <div class="row"><div><b>phone</b></div><div>${phone}</div></div>
+
+            <div class="row"><div><b>chat_id</b></div><div>${chatId}</div></div>
+
+            ${actions.length ? `<div class="actions">${actions.join("")}</div>` : ""}
+          </div>
+        `;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+    </script>
+  </body>
+</html>
