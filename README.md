@@ -14,7 +14,7 @@
 ---
 
 ## Технологии
-- Python 3.12+
+- Python 
 - FastAPI, Uvicorn
 - SQLAlchemy (+ Alembic)
 - SQLite (`aiosqlite`) 
