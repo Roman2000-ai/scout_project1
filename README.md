@@ -37,9 +37,8 @@
   TELEGRAM_API_ID=123456
   TELEGRAM_API_HASH=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   OPENAI_API_KEY=sk-...
-  MODEL_AI=model of openai
-  NAME_CHAT=NAME_CHAT
-
+  MODEL_AI=MODEL
+  TELEGRAM_CHATS=test1,test2....
  
 
 
