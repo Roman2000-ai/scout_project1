@@ -67,7 +67,7 @@ python telegram.py
 ### Терминал 2 — **API (FastAPI/Uvicorn)**
 ```bash
 source venv/bin/activate
-uvicorn main:app --reload -port 8000
+uvicorn main:app --reload --port 8000
 # http://127.0.0.1:8000/
 # Документация Swagger: http://127.0.0.1:8000/docs
 ```
