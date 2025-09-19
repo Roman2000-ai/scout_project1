@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 from typing import Union
 from dotenv import load_dotenv
 import os 
@@ -39,13 +39,13 @@ Response format: Strictly a JSON array of objects, without any explanations or t
 
 
 
-def send_query_ai(messages: list[dict]) -> Union [list[dict],None]:
+async def send_query_ai(messages: list[dict]) -> Union [list[dict],None]:
     client = OpenAI(api_key=API_KEY_OPENAI)
     str_messages = None 
 
     print("отправляю запрос на open ai")
     try:
-        response = client.chat.completions.create(
+        response =  await client.chat.completions.create(
             model=MODEL,
             messages =[
                 {"role": "system", "content": SYSTEM_PROMPT},
