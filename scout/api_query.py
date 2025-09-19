@@ -40,7 +40,7 @@ Response format: Strictly a JSON array of objects, without any explanations or t
 
 
 async def send_query_ai(messages: list[dict]) -> Union [list[dict],None]:
-    client = OpenAI(api_key=API_KEY_OPENAI)
+    client =AsyncOpenAI(api_key=API_KEY_OPENAI)
     str_messages = None 
 
     print("отправляю запрос на open ai")
