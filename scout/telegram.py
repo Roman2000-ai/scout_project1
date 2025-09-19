@@ -16,7 +16,7 @@ load_dotenv()
 
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
-NAME_CHAT = os.getenv("")
+TELEGRAM_CHATS = os.getenv("TELEGRAM_CHATS").split(",")
 
 PATTERNS = [
     r"\bищ\w+\b",                            
@@ -44,14 +44,14 @@ async def create_client_telegram(q: asyncio.Queue):
     async with TelegramClient("my_session",API_ID,API_HASH) as client:
         
         me = await client.get_me()
-        name_chat = NAME_CHAT
+        name_chats = TELEGRAM_CHATS
 
         print(f"username: {me.username}")
 
         target_chats = []
         #target_chats = [chat for chat in client.iter_dialogs if chat.name.lower() == name_chat ]
         async for chat in client.iter_dialogs():
-            if chat.name.lower() == name_chat:
+            if chat.name.lower() in  name_chats:
                  print("чат найден!!!")
                  target_chats.append(chat.entity)
             
