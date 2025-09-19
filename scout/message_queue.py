@@ -41,7 +41,7 @@ async def worker(q: asyncio.Queue):
                 try: 
 
                     print(messages_for_requests)
-                    messages_with_category = send_query_ai(messages_for_requests)
+                    messages_with_category =  await send_query_ai(messages_for_requests)
                     if messages_with_category:
                         print(messages_with_category)
                     
