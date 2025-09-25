@@ -15,7 +15,7 @@
 ## Технологии
 - Python 
 - FastAPI, Uvicorn
-- SQLAlchemy (+ Alembic)
+- SQLAlchemy 
 - SQLite (`aiosqlite`) 
 - Telethon
 - python-dotenv
