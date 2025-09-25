@@ -33,9 +33,9 @@
 - Создай файл **`.env`** (не коммитим):
   ```ini
   # Telegram (получить на https://my.telegram.org → API Development Tools)
-  TELEGRAM_API_ID=123456
-  TELEGRAM_API_HASH=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  OPENAI_API_KEY=sk-...
+  API_ID=123456(telegram)
+  API_HASH=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx(telegram)
+  API_KEY_OPENAI=sk-...
   MODEL_AI=MODEL
   TELEGRAM_CHATS=test1,test2....
   SECRET_KEY=случайное  число можно сделать в  терминале   при помощи команды  openssl rand -hex 32
