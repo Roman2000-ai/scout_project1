@@ -38,6 +38,9 @@
   OPENAI_API_KEY=sk-...
   MODEL_AI=MODEL
   TELEGRAM_CHATS=test1,test2....
+  SECRET_KEY=случайное  число можно сделать в  терминале   при помощи команды  openssl rand -hex 32
+  ALGORITHM=HS256
+  
  
 
 
@@ -47,7 +50,9 @@
 
 ---
 
-## Alembic — инициализация **в папке `db`**
+## созлдаем таблицы в db **в папке `db`**
+1. Активируем  окружение source venv/bin/activate
+2. Из  дериктории scout   выполняем команду python ./db/database.py 
 
 
 
