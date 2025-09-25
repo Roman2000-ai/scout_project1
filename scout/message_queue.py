@@ -1,9 +1,9 @@
 #from queue import Queue, Empty
 import asyncio
 import time
-from utils import prepare_for_api_ai_request, add_message_data,prepare_data_to_create_telefram_user
+from utils import prepare_for_api_ai_request, add_message_data,prepare_data_to_create_telegram_user
 from api_query import send_query_ai
-from db.crud import create_telegram_message,create_or_update_user_telegram
+from db.crud import create_telegram_message,create_or_update_user_telegram, get_telegram_chat_by_id_and_type
 from db.database import get_session
 
 
@@ -45,7 +45,7 @@ async def worker(q: asyncio.Queue):
                     if messages_with_category:
                         print(messages_with_category)
                     
-                    
+                     
                     messages = add_message_data(batch,messages_with_category)
                     if messages:
                        
@@ -53,7 +53,7 @@ async def worker(q: asyncio.Queue):
                             for message in messages:
                                 try:
                                     await create_telegram_message(session=session, message=message)
-                                    user = prepare_data_to_create_telefram_user(message=message)
+                                    user = prepare_data_to_create_telegram_user(message=message)
                                     print(user)
                                     
                                     await create_or_update_user_telegram(session=session,user = user )

@@ -3,10 +3,26 @@ import os
 from dotenv import load_dotenv
 import re
 import asyncio
-from utils import parse_message_from_telegram,parse_message_from_message
+from utils import parse_message_from_telegram,parse_message_from_message,prepare_data_to_create_telegram_chat
 import threading
 from queue import Queue
 from message_queue import worker
+from db.crud import create_or_update_telegramchat
+from db.database import get_session
+from scout.db.database import get_session
+from telethon.utils import get_peer_id
+
+from telethon.tl import functions, types 
+try:
+    from telethon.tl.functions.channels import GetFullChannel
+except ImportError:
+    from telethon.tl.functions.channels import GetFullChannelRequest as GetFullChannel
+
+try:
+    from telethon.tl.functions.messages import GetFullChat
+except ImportError:
+    from telethon.tl.functions.messages import GetFullChatRequest 
+
 
 
 
@@ -17,6 +33,7 @@ load_dotenv()
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 TELEGRAM_CHATS = os.getenv("TELEGRAM_CHATS").split(",")
+print(TELEGRAM_CHATS)
 
 PATTERNS = [
     r"\bищ\w+\b",                            
@@ -37,6 +54,30 @@ PATTERNS = [
     r"\bнужен\s+(мастер|исполнитель|подрядчик|курьер|сантехник|электрик)\w*\b",
 ]
 
+async def get_information_from_chat_and_create_in_db(chats_entity,client):
+    for chat_entity in chats_entity:
+        add_info = {}
+        print(F"говоятся данные чата {chat_entity.title} для добвления в db")
+        if isinstance(chat_entity,types.Chat):
+            add_info["peer_type"] = "chat"
+            print(f"{chat_entity.title} это  маленькая группа")
+            full = await  client(functions.messages.GetFullChatRequest(chat_id=chat_entity.id))
+            add_info["description"] = getattr(full.full_chat,"about",None)
+        elif isinstance(chat_entity, types.Channel):
+            print(f"{chat_entity.title} это большая группа")
+            add_info["peer_type"] = "channel"
+
+            full = await client(functions.channels.GetFullChannelRequest(channel=chat_entity))
+            add_info["description"] = getattr(full.full_chat,"about",None)
+            # возможно нало будет получить больше информации,жду ответа
+        parse_data = prepare_data_to_create_telegram_chat(chat_entity,add_info,full)
+        print(parse_data) 
+        await create_or_update_telegramchat(get_session,parse_data)
+
+
+
+
+
 
 
 async def create_client_telegram(q: asyncio.Queue):
@@ -54,6 +95,7 @@ async def create_client_telegram(q: asyncio.Queue):
             if chat.name.lower() in  name_chats:
                  print("чат найден!!!")
                  target_chats.append(chat.entity)
+        await get_information_from_chat_and_create_in_db(target_chats,client)
             
         # for chat in target_chats:
         #     async for msg in client.iter_messages(chat, limit=100):

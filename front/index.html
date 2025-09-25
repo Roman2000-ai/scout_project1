@@ -3,63 +3,168 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Категории → сообщения</title>
+    <title>Категории / Чаты / Пользователи</title>
     <style>
       :root { --gap: 10px; }
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Tahoma, sans-serif; margin: 0; padding: 24px; background: #f8f9fb; color: #111; }
       h1 { margin: 0 0 12px; font-size: 22px; }
-      .wrap { max-width: 900px; margin: 0 auto; }
+      .wrap { max-width: 1000px; margin: 0 auto; }
+
+      .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+      .tab-btn { border: 1px solid #d0d5dd; background: #fff; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+      .tab-btn.active { background: #111; color: #fff; border-color: #111; }
+
       .toolbar { display: flex; gap: var(--gap); align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
       .cats { display: flex; gap: var(--gap); flex-wrap: wrap; margin-bottom: 10px; }
       .cat-btn { border: 1px solid #d0d5dd; background: #fff; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; }
       .cat-btn.active { background: #111; color: #fff; border-color: #111; }
+
       .muted { color: #666; }
       .error { color: #b42318; }
       .controls { display: flex; gap: var(--gap); align-items: center; flex-wrap: wrap; margin: 10px 0 18px; }
-      input[type="number"] { padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; }
+      input[type="number"], input[type="text"], input[type="password"], select { padding: 8px 10px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; }
       button { padding: 8px 12px; border: 1px solid #d0d5dd; background: #fff; border-radius: 10px; cursor: pointer; }
       button.primary { background: #111; color: #fff; border-color: #111; }
       button:disabled { opacity: .5; cursor: default; }
+
       .list { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
       .item { padding: 12px 14px; border-top: 1px solid #f1f3f5; }
       .item:first-child { border-top: none; }
       .item b { font-weight: 600; }
-      .row { display: grid; grid-template-columns: 140px 1fr; gap: 10px; margin: 4px 0; }
+      .row { display: grid; grid-template-columns: 160px 1fr; gap: 10px; margin: 4px 0; }
       .topbar { display: flex; justify-content: space-between; align-items: center; margin: 8px 0 6px; }
       .pager { display: flex; gap: var(--gap); align-items: center; }
       code.badge { background: #f1f3f5; border: 1px solid #e5e7eb; padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
       .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
       .link-btn { display:inline-block; padding:6px 10px; border:1px solid #d0d5dd; border-radius:8px; text-decoration:none; }
+
+      .sticky { position: sticky; top: 0; background: #fff; padding: 6px 0; z-index: 1; }
+
+      /* Панель авторизации */
+      .authbar { display:flex; gap: var(--gap); align-items:center; justify-content: space-between; margin-bottom: 14px; }
+      .auth-left { display:flex; gap: var(--gap); align-items:center; flex-wrap: wrap; }
+      .auth-right { display:flex; gap: var(--gap); align-items:center; flex-wrap: wrap; }
     </style>
   </head>
   <body>
     <div class="wrap">
-      <h1>Категории → сообщения</h1>
+      <h1>Категории / Чаты / Пользователи</h1>
 
-      <div class="toolbar">
-        <div class="cats" id="cats"></div>
-      </div>
-
-      <div class="controls">
-        <label>Limit:
-          <input id="limit" type="number" min="1" value="20">
-        </label>
-        <label>Offset:
-          <input id="offset" type="number" min="0" value="0">
-        </label>
-        <button id="reloadBtn" class="primary">Обновить</button>
-        <span id="status" class="muted"></span>
-      </div>
-
-      <div class="topbar">
-        <div><span class="muted">Активная категория:</span> <code class="badge" id="activeCat">—</code></div>
-        <div class="pager">
-          <button id="prevBtn">Prev</button>
-          <button id="nextBtn">Next</button>
+      <!-- ПАНЕЛЬ АВТОРИЗАЦИИ -->
+      <div class="authbar">
+        <div class="auth-left">
+          <label>Логин: <input id="authUsername" type="text" autocomplete="username" placeholder="username"></label>
+          <label>Пароль: <input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label>
+          <button id="btnLogin" class="primary">Войти</button>
+          <button id="btnRegister">Регистрация</button>
+        </div>
+        <div class="auth-right">
+          <span class="muted">Статус:</span> <code class="badge" id="authStatus">не авторизован</code>
+          <button id="btnLogout" style="display:none">Выйти</button>
         </div>
       </div>
 
-      <div id="list" class="list"></div>
+      <!-- ТАБЫ -->
+      <div class="tabs">
+        <button id="tabCategories" class="tab-btn active">Категории</button>
+        <button id="tabChats" class="tab-btn">Чаты</button>
+        <button id="tabUsers" class="tab-btn">Пользователи</button>
+      </div>
+
+      <!-- ====== ПАНЕЛЬ КАТЕГОРИЙ ====== -->
+      <div id="paneCategories">
+        <div class="toolbar">
+          <div class="cats" id="cats"></div>
+        </div>
+
+        <div class="controls">
+          <label>Limit: <input id="limit" type="number" min="1" value="20"></label>
+          <label>Offset: <input id="offset" type="number" min="0" value="0"></label>
+          <button id="reloadBtn" class="primary">Обновить</button>
+          <span id="status" class="muted"></span>
+        </div>
+
+        <div class="topbar">
+          <div><span class="muted">Активная категория:</span> <code class="badge" id="activeCat">—</code></div>
+          <div class="pager">
+            <button id="prevBtn">Prev</button>
+            <button id="nextBtn">Next</button>
+          </div>
+        </div>
+
+        <div id="list" class="list"></div>
+      </div>
+
+      <!-- ====== ПАНЕЛЬ ЧАТОВ ====== -->
+      <div id="paneChats" style="display:none">
+        <!-- сцена: список чатов -->
+        <div id="chatListSection">
+          <div class="controls">
+            <label>Поиск: <input id="chatQuery" type="text" placeholder="Название, описание, @username"></label>
+            <label>Limit: <input id="chatLimit" type="number" min="1" value="20"></label>
+            <label>Offset: <input id="chatOffset" type="number" min="0" value="0"></label>
+            <button id="reloadChatsBtn" class="primary">Загрузить чаты</button>
+            <span id="chatStatus" class="muted"></span>
+          </div>
+
+          <div class="topbar">
+            <div><span class="muted">Всего чатов (по ответу):</span> <code class="badge" id="chatCount">—</code></div>
+            <div class="pager">
+              <button id="chatPrevBtn">Prev</button>
+              <button id="chatNextBtn">Next</button>
+            </div>
+          </div>
+
+          <div id="chatList" class="list"></div>
+        </div>
+
+        <!-- сцена: сообщения конкретного чата -->
+        <div id="chatMsgsSection" style="display:none">
+          <div class="controls">
+            <button id="backToChatsBtn">← Назад к чатам</button>
+            <div><span class="muted">Чат:</span> <code class="badge" id="activeChatBadge">—</code></div>
+            <label>Limit: <input id="msgLimit" type="number" min="1" value="20"></label>
+            <label>Offset: <input id="msgOffset" type="number" min="0" value="0"></label>
+            <button id="reloadChatMsgsBtn" class="primary">Обновить сообщения</button>
+            <span id="msgStatus" class="muted"></span>
+          </div>
+
+          <div class="topbar sticky">
+            <div><span class="muted">Источник:</span> <code class="badge">/chats/{id}</code></div>
+            <div class="pager">
+              <button id="msgPrevBtn">Prev</button>
+              <button id="msgNextBtn">Next</button>
+            </div>
+          </div>
+
+          <div id="msgList" class="list"></div>
+        </div>
+      </div>
+
+      <!-- ====== ПАНЕЛЬ ПОЛЬЗОВАТЕЛЕЙ ====== -->
+      <div id="paneUsers" style="display:none">
+        <div class="controls">
+          <label>User ID: <input id="userIdInput" type="number" min="1" placeholder="Например, 123"></label>
+          <button id="findUserBtn" class="primary">Найти по ID</button>
+
+          <span class="muted">|</span>
+
+          <label>Limit: <input id="usersLimit" type="number" min="1" value="20"></label>
+          <label>Offset: <input id="usersOffset" type="number" min="0" value="0"></label>
+          <button id="reloadUsersBtn">Загрузить список</button>
+          <span id="usersStatus" class="muted"></span>
+        </div>
+
+        <div class="topbar">
+          <div><span class="muted">Всего (по ответу):</span> <code class="badge" id="usersCount">—</code></div>
+          <div class="pager">
+            <button id="usersPrevBtn">Prev</button>
+            <button id="usersNextBtn">Next</button>
+          </div>
+        </div>
+
+        <div id="usersList" class="list"></div>
+      </div>
     </div>
 
     <script>
@@ -70,7 +175,109 @@
         "development","consultation","transportation","installation","configuration"
       ];
 
-      // === ЭЛЕМЕНТЫ DOM ===
+      // ==== AUTH ====
+      const authUsername = document.getElementById("authUsername");
+      const authPassword = document.getElementById("authPassword");
+      const btnLogin = document.getElementById("btnLogin");
+      const btnRegister = document.getElementById("btnRegister");
+      const btnLogout = document.getElementById("btnLogout");
+      const authStatus = document.getElementById("authStatus");
+
+      function getToken() { return localStorage.getItem("auth_token") || ""; }
+      function setToken(t) {
+        if (t) localStorage.setItem("auth_token", t);
+        else localStorage.removeItem("auth_token");
+        updateAuthUI();
+      }
+      function isAuthed() { return !!getToken(); }
+      function authHeaders(extra = {}) {
+        const t = getToken();
+        return t ? { ...extra, "Authorization": `Bearer ${t}` } : { ...extra };
+      }
+      function updateAuthUI() {
+        if (isAuthed()) {
+          authStatus.textContent = "авторизован";
+          btnLogout.style.display = "";
+          btnLogin.disabled = true;
+          btnRegister.disabled = true;
+        } else {
+          authStatus.textContent = "не авторизован";
+          btnLogout.style.display = "none";
+          btnLogin.disabled = false;
+          btnRegister.disabled = false;
+        }
+      }
+
+      btnLogin.addEventListener("click", async () => {
+        const u = (authUsername.value || "").trim();
+        const p = authPassword.value || "";
+        if (!u || !p) { alert("Введите логин и пароль"); return; }
+        try {
+          const res = await fetch(`${API_BASE}/token/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ username: u, password: p })
+          });
+          if (!res.ok) {
+            const t = await res.text();
+            throw new Error(`Ошибка входа ${res.status}: ${t}`);
+          }
+          const data = await res.json();
+          if (data?.access_token) {
+            setToken(data.access_token);
+          } else {
+            throw new Error("Токен не получен");
+          }
+        } catch (e) {
+          alert(e?.message || String(e));
+        }
+      });
+
+      btnRegister.addEventListener("click", async () => {
+        const u = (authUsername.value || "").trim();
+        const p = authPassword.value || "";
+        if (!u || !p) { alert("Введите логин и пароль"); return; }
+        try {
+          const res = await fetch(`${API_BASE}/register/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: u, password: p })
+          });
+          if (!res.ok) {
+            const t = await res.text();
+            throw new Error(`Ошибка регистрации ${res.status}: ${t}`);
+          }
+          const data = await res.json();
+          if (data?.access_token) {
+            setToken(data.access_token);
+          } else {
+            throw new Error("Токен не получен");
+          }
+        } catch (e) {
+          alert(e?.message || String(e));
+        }
+      });
+
+      btnLogout.addEventListener("click", () => {
+        setToken("");
+      });
+
+      updateAuthUI();
+
+      // ==== ТАБЫ/ПАНЕЛИ ====
+      const tabCategoriesBtn = document.getElementById("tabCategories");
+      const tabChatsBtn = document.getElementById("tabChats");
+      const tabUsersBtn = document.getElementById("tabUsers");
+      const paneCategories = document.getElementById("paneCategories");
+      const paneChats = document.getElementById("paneChats");
+      const paneUsers = document.getElementById("paneUsers");
+
+      // сцены вкладки Чаты
+      const chatListSection = document.getElementById("chatListSection");
+      const chatMsgsSection = document.getElementById("chatMsgsSection");
+      const backToChatsBtn = document.getElementById("backToChatsBtn");
+
+      // === DOM (категории) ===
       const catsEl = document.getElementById("cats");
       const activeCatEl = document.getElementById("activeCat");
       const listEl = document.getElementById("list");
@@ -81,11 +288,92 @@
       const prevBtn = document.getElementById("prevBtn");
       const nextBtn = document.getElementById("nextBtn");
 
+      // === DOM (чаты) ===
+      const chatQueryInput = document.getElementById("chatQuery");
+      const chatLimitInput = document.getElementById("chatLimit");
+      const chatOffsetInput = document.getElementById("chatOffset");
+      const reloadChatsBtn = document.getElementById("reloadChatsBtn");
+      const chatStatusEl = document.getElementById("chatStatus");
+      const chatCountEl = document.getElementById("chatCount");
+      const chatPrevBtn = document.getElementById("chatPrevBtn");
+      const chatNextBtn = document.getElementById("chatNextBtn");
+      const chatListEl = document.getElementById("chatList");
+
+      const activeChatBadge = document.getElementById("activeChatBadge");
+      const msgLimitInput = document.getElementById("msgLimit");
+      const msgOffsetInput = document.getElementById("msgOffset");
+      const reloadChatMsgsBtn = document.getElementById("reloadChatMsgsBtn");
+      const msgStatusEl = document.getElementById("msgStatus");
+      const msgPrevBtn = document.getElementById("msgPrevBtn");
+      const msgNextBtn = document.getElementById("msgNextBtn");
+      const msgListEl = document.getElementById("msgList");
+
+      // === DOM (пользователи) ===
+      const userIdInput = document.getElementById("userIdInput");
+      const findUserBtn = document.getElementById("findUserBtn");
+      const usersLimitInput = document.getElementById("usersLimit");
+      const usersOffsetInput = document.getElementById("usersOffset");
+      const reloadUsersBtn = document.getElementById("reloadUsersBtn");
+      const usersPrevBtn = document.getElementById("usersPrevBtn");
+      const usersNextBtn = document.getElementById("usersNextBtn");
+      const usersListEl = document.getElementById("usersList");
+      const usersStatusEl = document.getElementById("usersStatus");
+      const usersCountEl = document.getElementById("usersCount");
+
       // === СОСТОЯНИЕ ===
       let categories = [...DEFAULT_CATEGORIES];
       let activeCategory = null;
 
-      // init
+      let chats = [];
+      let activeChat = null;
+
+      let users = [];
+
+      // ==== ТАБЫ ====
+      tabCategoriesBtn.addEventListener("click", () => switchTab("categories"));
+      tabChatsBtn.addEventListener("click", () => switchTab("chats"));
+      tabUsersBtn.addEventListener("click", () => switchTab("users"));
+
+      function switchTab(name) {
+        const catActive = name === "categories";
+        const chatActive = name === "chats";
+        const usersActive = name === "users";
+
+        tabCategoriesBtn.classList.toggle("active", catActive);
+        tabChatsBtn.classList.toggle("active", chatActive);
+        tabUsersBtn.classList.toggle("active", usersActive);
+
+        paneCategories.style.display = catActive ? "" : "none";
+        paneChats.style.display = chatActive ? "" : "none";
+        paneUsers.style.display = usersActive ? "" : "none";
+
+        if (chatActive) {
+          showChatList();
+          if (chats.length === 0) loadChats();
+        }
+        if (usersActive && users.length === 0) {
+          loadUsersList();
+        }
+      }
+
+      // ==== СЦЕНЫ ВО ВКЛАДКЕ ЧАТЫ ====
+      backToChatsBtn.addEventListener("click", showChatList);
+
+      function showChatList() {
+        chatMsgsSection.style.display = "none";
+        chatListSection.style.display = "";
+        activeChat = null;
+        activeChatBadge.textContent = "—";
+        paneChats.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function showChatMessages() {
+        chatListSection.style.display = "none";
+        chatMsgsSection.style.display = "";
+        paneChats.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      // ==== КАТЕГОРИИ ====
       renderCategories();
       if (categories.length) selectCategory(categories[0]);
 
@@ -147,14 +435,15 @@
           if (limit) url.searchParams.set("limit", String(limit));
           if (offset) url.searchParams.set("offset", String(offset));
 
-          const res = await fetch(url.toString(), { method: "GET" });
+          const res = await fetch(url.toString(), { method: "GET", headers: authHeaders() });
+          if (res.status === 401) throw new Error("401: требуется авторизация");
           if (!res.ok) {
             const text = await res.text();
             throw new Error(`API error ${res.status}: ${text}`);
           }
 
           const data = await res.json();
-          renderList(data);
+          renderList(data, listEl);
           statusEl.textContent = `Получено: ${Array.isArray(data) ? data.length : 0}`;
           statusEl.className = "muted";
         } catch (err) {
@@ -163,15 +452,296 @@
         }
       }
 
-      function renderList(arr) {
-        if (!Array.isArray(arr) || arr.length === 0) {
-          listEl.innerHTML = `<div class="item muted">Ничего не найдено</div>`;
-          return;
-        }
-        listEl.innerHTML = arr.map(renderItem).join("");
+      // ==== ЧАТЫ ====
+      reloadChatsBtn.addEventListener("click", () => loadChats());
+      chatPrevBtn.addEventListener("click", () => stepChatOffset(-1));
+      chatNextBtn.addEventListener("click", () => stepChatOffset(1));
+      chatQueryInput.addEventListener("input", debounce(() => {
+        chatOffsetInput.value = "0";
+        loadChats();
+      }, 300));
+
+      function readChatLimit()  { const v = Number(chatLimitInput.value);  return Number.isFinite(v) && v > 0 ? v : 20; }
+      function readChatOffset() { const v = Number(chatOffsetInput.value); return Number.isFinite(v) && v >= 0 ? v : 0; }
+      function readMsgLimit()   { const v = Number(msgLimitInput.value);   return Number.isFinite(v) && v > 0 ? v : 20; }
+      function readMsgOffset()  { const v = Number(msgOffsetInput.value);  return Number.isFinite(v) && v >= 0 ? v : 0; }
+      function readChatQuery()  { return (chatQueryInput.value || "").trim(); }
+
+      function stepChatOffset(dir) {
+        const limit = readChatLimit();
+        let offset = readChatOffset();
+        const step = Math.max(1, limit);
+        const next = Math.max(0, offset + dir * step);
+        chatOffsetInput.value = String(next);
+        loadChats();
       }
 
-      // === ССЫЛКА "НАПИСАТЬ" ===
+      async function loadChats() {
+        chatStatusEl.textContent = "Загрузка…";
+        chatStatusEl.className = "muted";
+        chatListEl.innerHTML = "";
+
+        const limit = readChatLimit();
+        const offset = readChatOffset();
+        const q = readChatQuery();
+
+        try {
+          const url = new URL(`${API_BASE}/chats/`);
+          if (limit)  url.searchParams.set("limit", String(limit));
+          if (offset) url.searchParams.set("offset", String(offset));
+          if (q)      url.searchParams.set("q", q);
+
+          const res = await fetch(url.toString(), { method: "GET", headers: authHeaders() });
+          if (res.status === 401) throw new Error("401: требуется авторизация");
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`API error ${res.status}: ${text}`);
+          }
+          chats = await res.json();
+          chatCountEl.textContent = Array.isArray(chats) ? chats.length : 0;
+          renderChats(chats);
+          chatStatusEl.textContent = "Готово";
+          chatStatusEl.className = "muted";
+        } catch (e) {
+          chatStatusEl.textContent = e?.message || String(e);
+          chatStatusEl.className = "error";
+        }
+      }
+
+      function renderChats(arr) {
+        if (!Array.isArray(arr) || arr.length === 0) {
+          chatListEl.innerHTML = `<div class="item muted">Чатов нет</div>`;
+          return;
+        }
+        chatListEl.innerHTML = arr.map(renderChatItem).join("");
+      }
+
+      function renderChatItem(c) {
+        const title = escapeHtml(c?.title ?? "");
+        const username = c?.username ? `@${escapeHtml(c.username)}` : "—";
+        const peerType = c?.peer_type ?? "—";
+        const tgId = c?.tg_chat_id ?? "—";
+        const id = c?.id ?? "—";
+        const desc = escapeHtml(c?.description ?? "");
+
+        return `
+          <div class="item">
+            <div class="row"><div><b>id (PK)</b></div><div>${id}</div></div>
+            <div class="row"><div><b>title</b></div><div>${title}</div></div>
+            <div class="row"><div><b>username</b></div><div>${username}</div></div>
+            <div class="row"><div><b>peer_type</b></div><div>${peerType}</div></div>
+            <div class="row"><div><b>tg_chat_id (signed)</b></div><div>${tgId}</div></div>
+            <div class="row"><div><b>description</b></div><div>${desc || "—"}</div></div>
+            <div class="actions">
+              <button class="primary" onclick="openChatMessages(${Number(id)})">Открыть сообщения</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // загрузка сообщений конкретного чата
+      window.openChatMessages = function(chatPk) {
+        if (!chatPk && chatPk !== 0) return;
+        const found = Array.isArray(chats) ? chats.find(c => c.id === chatPk) : null;
+        activeChat = found || { id: chatPk };
+        activeChatBadge.textContent = found ? `${found.title || "(без названия)"} [id=${found.id}]` : `id=${chatPk}`;
+        msgOffsetInput.value = "0";
+        showChatMessages();
+        loadMessagesOfActiveChat();
+      }
+
+      reloadChatMsgsBtn.addEventListener("click", () => loadMessagesOfActiveChat());
+      msgPrevBtn.addEventListener("click", () => stepMsgOffset(-1));
+      msgNextBtn.addEventListener("click", () => stepMsgOffset(1));
+
+      function stepMsgOffset(dir) {
+        const limit = readMsgLimit();
+        let offset = readMsgOffset();
+        const step = Math.max(1, limit);
+        const next = Math.max(0, offset + dir * step);
+        msgOffsetInput.value = String(next);
+        loadMessagesOfActiveChat();
+      }
+
+      async function loadMessagesOfActiveChat() {
+        if (!activeChat?.id) {
+          msgStatusEl.textContent = "Сначала выберите чат";
+          msgStatusEl.className = "muted";
+          msgListEl.innerHTML = `<div class="item muted">Чат не выбран</div>`;
+          return;
+        }
+
+        const limit = readMsgLimit();
+        const offset = readMsgOffset();
+
+        msgStatusEl.textContent = "Загрузка…";
+        msgStatusEl.className = "muted";
+        msgListEl.innerHTML = "";
+
+        try {
+          const url = new URL(`${API_BASE}/chats/${encodeURIComponent(activeChat.id)}`);
+          if (limit) url.searchParams.set("limit", String(limit));
+          if (offset) url.searchParams.set("offset", String(offset));
+
+          const res = await fetch(url.toString(), { method: "GET", headers: authHeaders() });
+          if (res.status === 401) throw new Error("401: требуется авторизация");
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`API error ${res.status}: ${text}`);
+          }
+
+          const data = await res.json();
+          renderList(data, msgListEl);
+          msgStatusEl.textContent = `Получено: ${Array.isArray(data) ? data.length : 0}`;
+          msgStatusEl.className = "muted";
+        } catch (e) {
+          msgStatusEl.textContent = e?.message || String(e);
+          msgStatusEl.className = "error";
+        }
+      }
+
+      // ==== ПОЛЬЗОВАТЕЛИ ====
+      findUserBtn.addEventListener("click", () => fetchUserById());
+      reloadUsersBtn.addEventListener("click", () => loadUsersList());
+      usersPrevBtn.addEventListener("click", () => stepUsersOffset(-1));
+      usersNextBtn.addEventListener("click", () => stepUsersOffset(1));
+      userIdInput.addEventListener("keydown", (e) => { if (e.key === "Enter") fetchUserById(); });
+
+      function readUsersLimit()  { const v = Number(usersLimitInput.value);  return Number.isFinite(v) && v > 0 ? v : 20; }
+      function readUsersOffset() { const v = Number(usersOffsetInput.value); return Number.isFinite(v) && v >= 0 ? v : 0; }
+
+      function stepUsersOffset(dir) {
+        const limit = readUsersLimit();
+        let offset = readUsersOffset();
+        const step = Math.max(1, limit);
+        const next = Math.max(0, offset + dir * step);
+        usersOffsetInput.value = String(next);
+        loadUsersList();
+      }
+
+      async function loadUsersList() {
+        usersStatusEl.textContent = "Загрузка…";
+        usersStatusEl.className = "muted";
+        usersListEl.innerHTML = "";
+
+        const limit = readUsersLimit();
+        const offset = readUsersOffset();
+
+        try {
+          const url = new URL(`${API_BASE}/users/`);
+          if (limit)  url.searchParams.set("limit", String(limit));
+          if (offset) url.searchParams.set("offset", String(offset));
+
+          const res = await fetch(url.toString(), { method: "GET", headers: authHeaders() });
+          if (res.status === 401) throw new Error("401: требуется авторизация");
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`API error ${res.status}: ${text}`);
+          }
+          users = await res.json();
+          usersCountEl.textContent = Array.isArray(users) ? users.length : 0;
+          renderUsersList(users);
+          usersStatusEl.textContent = "Готово";
+          usersStatusEl.className = "muted";
+        } catch (e) {
+          usersStatusEl.textContent = e?.message || String(e);
+          usersStatusEl.className = "error";
+        }
+      }
+
+      async function fetchUserById() {
+        const raw = userIdInput.value?.trim();
+        if (!raw) {
+          usersStatusEl.textContent = "Введите ID";
+          usersStatusEl.className = "muted";
+          return;
+        }
+        const userId = Number(raw);
+        if (!Number.isFinite(userId) || userId <= 0) {
+          usersStatusEl.textContent = "Неверный ID";
+          usersStatusEl.className = "error";
+          return;
+        }
+
+        usersStatusEl.textContent = "Загрузка…";
+        usersStatusEl.className = "muted";
+        usersListEl.innerHTML = "";
+
+        try {
+          const url = new URL(`${API_BASE}/users/${encodeURIComponent(userId)}`);
+          const res = await fetch(url.toString(), { method: "GET", headers: authHeaders() });
+          if (res.status === 404) {
+            users = [];
+            usersCountEl.textContent = "0";
+            usersListEl.innerHTML = `<div class="item muted">Пользователь #${userId} не найден</div>`;
+            usersStatusEl.textContent = "Нет данных";
+            usersStatusEl.className = "muted";
+            return;
+          }
+          if (res.status === 401) {
+            throw new Error("401: требуется авторизация");
+          }
+            if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`API error ${res.status}: ${text}`);
+          }
+          const data = await res.json();
+          const arr = Array.isArray(data) ? data : (data ? [data] : []);
+          users = arr;
+          usersCountEl.textContent = String(arr.length);
+          renderUsersList(arr);
+          usersStatusEl.textContent = "Готово";
+          usersStatusEl.className = "muted";
+        } catch (e) {
+          usersStatusEl.textContent = e?.message || String(e);
+          usersStatusEl.className = "error";
+        }
+      }
+
+      function renderUsersList(arr) {
+        if (!Array.isArray(arr) || arr.length === 0) {
+          usersListEl.innerHTML = `<div class="item muted">Ничего не найдено</div>`;
+          return;
+        }
+        usersListEl.innerHTML = arr.map(renderUserItem).join("");
+      }
+
+      function renderUserItem(u) {
+        const pk = u?.id ?? "—";
+        const extId = u?.user_id ?? u?.tg_user_id ?? "—";
+        const username = u?.username ? `@${escapeHtml(u.username)}` : "—";
+        const first = u?.first_name ?? "";
+        const last = u?.last_name ?? "";
+        const fullName = [first, last].filter(Boolean).join(" ") || "—";
+        const phone = u?.phone ?? "—";
+        const isBot = u?.is_bot != null ? String(!!u.is_bot) : "—";
+        const created = u?.created_at ? new Date(u.created_at).toLocaleString() : "—";
+
+        const link = tgUserLink({ username: u?.username, user_id: u?.user_id });
+
+        return `
+          <div class="item">
+            <div class="row"><div><b>id (PK)</b></div><div>${pk}</div></div>
+            <div class="row"><div><b>user_id (TG)</b></div><div>${extId}</div></div>
+            <div class="row"><div><b>username</b></div><div>${username}</div></div>
+            <div class="row"><div><b>name</b></div><div>${escapeHtml(fullName)}</div></div>
+            <div class="row"><div><b>phone</b></div><div>${escapeHtml(String(phone))}</div></div>
+            <div class="row"><div><b>is_bot</b></div><div>${isBot}</div></div>
+            <div class="row"><div><b>created_at</b></div><div>${created}</div></div>
+            ${link ? `<div class="actions"><a class="link-btn" href="${link}" target="_blank" rel="noopener noreferrer">Открыть в Telegram</a></div>` : ""}
+          </div>
+        `;
+      }
+
+      // ==== ОБЩИЕ РЕНДЕРЫ ====
+      function renderList(arr, targetEl) {
+        if (!Array.isArray(arr) || arr.length === 0) {
+          targetEl.innerHTML = `<div class="item muted">Ничего не найдено</div>`;
+          return;
+        }
+        targetEl.innerHTML = arr.map(renderMessageItem).join("");
+      }
+
       function tgUserLink({ username, user_id }) {
         if (username && typeof username === "string" && username.trim()) {
           return `https://t.me/${encodeURIComponent(username.trim())}`;
@@ -182,7 +752,7 @@
         return null;
       }
 
-      function renderItem(m) {
+      function renderMessageItem(m) {
         const dt = m?.date ? new Date(m.date).toLocaleString() : "—";
         const text = escapeHtml(m?.text ?? "");
         const messageId = m?.message_id ?? "—";
@@ -190,12 +760,10 @@
         const userId = m?.user_id ?? "—";
         const category = m?.category ?? "—";
 
-        // пользовательские поля
         const username = m?.username ?? "—";
         const fullName = [m?.first_name, m?.last_name].filter(Boolean).join(" ") || "—";
         const phone = m?.phone ?? "—";
 
-        // только кнопка "Написать"
         const userLink = tgUserLink({ username: m?.username, user_id: m?.user_id });
         const actions = [];
         if (userLink) actions.push(`<a class="link-btn" href="${userLink}" target="_blank" rel="noopener noreferrer">Написать</a>`);
@@ -226,6 +794,10 @@
           .replaceAll(">", "&gt;")
           .replaceAll('"', "&quot;")
           .replaceAll("'", "&#039;");
+      }
+
+      function debounce(fn, ms) {
+        let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
       }
     </script>
   </body>
