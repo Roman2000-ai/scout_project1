@@ -15,9 +15,13 @@ async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 async def create_tables():
     async with engine.begin() as conn: 
-        await conn.run_sync(Base.metadata.drop_all)
+       
         await conn.run_sync(Base.metadata.create_all)
-
+        print("таблицы созданы в db")
+async def drop_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        print("таблицы удалены из db")
 
 async def get_fastapi_session() -> AsyncSession:
     async with async_session_factory() as session:
@@ -31,4 +35,15 @@ def get_session() -> AsyncSession:
 
 
 if __name__ == "__main__":
-    asyncio.run(create_tables())
+    args = sys.argv[1:]
+    if not args:
+        print("нужен аргумент create или drop")
+        sys.exit()
+    cmd = args[0]
+    if cmd == "create":
+        asyncio.run(create_tables())
+    elif cmd ==  "drop":
+        asyncio.run(drop_tables())
+    else:
+        print("нужен аргумент create или drop")
+        sys.exit()
